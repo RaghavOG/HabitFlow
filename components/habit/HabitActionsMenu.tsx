@@ -8,6 +8,14 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { toast } from "sonner"
 import { MoreHorizontal, PencilLine, Trash2 } from "lucide-react"
+import { daysInMonthUTC } from "@/utils/date"
+
+const PRESET_COLORS = ["#22c55e", "#3b82f6", "#a855f7", "#f59e0b", "#f43f5e"] as const
+
+function clampInt(n: number, min: number, max: number) {
+  const x = Math.trunc(Number.isFinite(n) ? n : min)
+  return Math.max(min, Math.min(max, x))
+}
 
 type HabitLike = {
   _id: string
@@ -20,10 +28,14 @@ export default function HabitActionsMenu({
   habit,
   onSaved,
   onDeleted,
+  year,
+  month,
 }: {
   habit: HabitLike
   onSaved: () => void
   onDeleted: () => void
+  year?: number
+  month?: number // 1-12
 }) {
   const [open, setOpen] = React.useState(false)
   const [name, setName] = React.useState(habit.name)
@@ -31,6 +43,17 @@ export default function HabitActionsMenu({
   const [goalPerMonth, setGoalPerMonth] = React.useState<number>(habit.goalPerMonth)
   const [saving, setSaving] = React.useState(false)
   const [deleting, setDeleting] = React.useState(false)
+
+  const maxDays = React.useMemo(() => {
+    const now = new Date()
+    const y = year ?? now.getUTCFullYear()
+    const m = month ?? now.getUTCMonth() + 1
+    return daysInMonthUTC(y, m)
+  }, [month, year])
+
+  React.useEffect(() => {
+    setGoalPerMonth((g) => clampInt(g, 1, maxDays))
+  }, [maxDays])
 
   React.useEffect(() => {
     if (!open) {
@@ -50,7 +73,7 @@ export default function HabitActionsMenu({
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
-        body: JSON.stringify({ name: name.trim(), color: color.trim(), goalPerMonth }),
+        body: JSON.stringify({ name: name.trim(), color: color.trim(), goalPerMonth: clampInt(goalPerMonth, 1, maxDays) }),
       })
       const json = (await res.json()) as { error?: string }
       if (!res.ok) throw new Error(json.error || "Failed to update habit")
@@ -135,13 +158,35 @@ export default function HabitActionsMenu({
 
             <div className="space-y-2">
               <Label htmlFor={`color-${habit._id}`}>Color</Label>
-              <Input
-                id={`color-${habit._id}`}
-                type="color"
-                value={color}
-                onChange={(e) => setColor(e.target.value)}
-                className="h-10"
-              />
+              <div className="flex items-center gap-3">
+                <div className="h-10 w-10 rounded-xl border border-zinc-800" style={{ backgroundColor: color }} />
+                <Input
+                  id={`color-${habit._id}`}
+                  type="color"
+                  value={color}
+                  onChange={(e) => setColor(e.target.value)}
+                  className="h-10 w-16 rounded-xl p-1"
+                />
+                <Input value={color} onChange={(e) => setColor(e.target.value)} className="h-10 rounded-xl font-mono" />
+              </div>
+              <div className="flex flex-wrap gap-2 pt-1">
+                {PRESET_COLORS.map((c) => {
+                  const active = c.toLowerCase() === color.toLowerCase()
+                  return (
+                    <button
+                      key={c}
+                      type="button"
+                      className={[
+                        "h-8 w-8 rounded-xl border transition-transform",
+                        active ? "border-zinc-200 ring-2 ring-zinc-200/20 scale-[1.03]" : "border-zinc-800 hover:scale-[1.03]",
+                      ].join(" ")}
+                      style={{ backgroundColor: c }}
+                      onClick={() => setColor(c)}
+                      aria-label={`Set color ${c}`}
+                    />
+                  )
+                })}
+              </div>
             </div>
 
             <div className="space-y-2">
@@ -150,9 +195,11 @@ export default function HabitActionsMenu({
                 id={`goal-${habit._id}`}
                 type="number"
                 min={1}
+                max={maxDays}
                 value={goalPerMonth}
-                onChange={(e) => setGoalPerMonth(Number(e.target.value))}
+                onChange={(e) => setGoalPerMonth(clampInt(Number(e.target.value), 1, maxDays))}
               />
+              <div className="text-xs text-zinc-500">1–{maxDays}</div>
             </div>
 
             <div className="flex gap-2 justify-end">

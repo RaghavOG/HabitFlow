@@ -20,6 +20,7 @@ import type { DashboardHabit } from "@/lib/redux/dashboardSlice"
 import { formatDateKeyUTC, toStartOfDayUTC } from "@/utils/date"
 import { CalendarCheck2, Flame, RotateCcw, BarChart2 } from "lucide-react"
 import AIInsightsCard from "@/components/ai/AIInsightsCard"
+import { toast } from "sonner"
 
 function monthLabel(year: number, month1to12: number) {
   const d = new Date(Date.UTC(year, month1to12 - 1, 1))
@@ -27,6 +28,7 @@ function monthLabel(year: number, month1to12: number) {
 }
 
 const EMPTY_HABITS: DashboardHabit[] = []
+const SHOW_MORNING_ROUTINE_BUTTON = true
 
 export default function DashboardPage() {
   const [showMotivation, setShowMotivation] = React.useState<boolean>(() => {
@@ -59,6 +61,7 @@ export default function DashboardPage() {
   const persistedHabits = useAppSelector((s) => s.dashboard.habitsByMonthKey[monthKey])
   const hasMonthData = persistedHabits !== undefined
   const habits: DashboardHabit[] = persistedHabits ?? EMPTY_HABITS
+  const displayHabits = React.useMemo(() => [...habits].reverse(), [habits])
 
   const [authRequired, setAuthRequired] = React.useState(false)
   const [loadingInitial, setLoadingInitial] = React.useState(false)
@@ -169,6 +172,22 @@ export default function DashboardPage() {
     void fetchDashboard({ showSpinner: false })
   }, [dispatch, fetchDashboard, month, monthKey, year])
 
+  const [seedingRoutine, setSeedingRoutine] = React.useState(false)
+  const seedMorningRoutine = React.useCallback(async () => {
+    setSeedingRoutine(true)
+    try {
+      const res = await fetch("/api/habits/seed-morning-routine", { method: "POST", credentials: "include" })
+      const json = (await res.json()) as { error?: string; created?: number; skipped?: number }
+      if (!res.ok) throw new Error(json.error || "Failed to add routine habits")
+      toast.success(`Added ${json.created ?? 0} habits${(json.skipped ?? 0) > 0 ? ` (skipped ${json.skipped})` : ""}`)
+      void fetchDashboard({ showSpinner: false })
+    } catch (e: unknown) {
+      toast.error(e instanceof Error ? e.message : "Failed to add routine habits")
+    } finally {
+      setSeedingRoutine(false)
+    }
+  }, [fetchDashboard])
+
   const motivation = React.useMemo(() => {
     if (!habits.length) return { streakText: "Start a habit today", weekdayText: "", goalText: "" }
 
@@ -215,7 +234,18 @@ export default function DashboardPage() {
           >
             Next
           </Button>
-          {!authRequired && <AddHabitDialog onCreated={() => void fetchDashboard({ showSpinner: true })} />}
+          {!authRequired && <AddHabitDialog year={year} month={month} onCreated={() => void fetchDashboard({ showSpinner: true })} />}
+          {!authRequired && SHOW_MORNING_ROUTINE_BUTTON ? (
+            <Button
+              size="sm"
+              variant="outline"
+              className="rounded-xl bg-zinc-900/40 border-zinc-800 hover:bg-zinc-900/60"
+              disabled={seedingRoutine}
+              onClick={() => void seedMorningRoutine()}
+            >
+              {seedingRoutine ? "Adding Routine..." : "Add Morning Routine Pack"}
+            </Button>
+          ) : null}
         </div>
         <div className="text-sm text-muted-foreground">{monthLabel(year, month)}</div>
       </div>
@@ -263,7 +293,7 @@ export default function DashboardPage() {
           <div className="space-y-4">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div className="flex flex-wrap items-center gap-2">
-                <AddHabitDialog onCreated={() => void fetchDashboard({ showSpinner: false })} />
+                <AddHabitDialog year={year} month={month} onCreated={() => void fetchDashboard({ showSpinner: false })} />
 
                 <Button
                   size="sm"
@@ -316,12 +346,14 @@ export default function DashboardPage() {
               </div>
 
               <div className="flex flex-wrap gap-x-3 gap-y-1 text-xs text-zinc-300">
-                {habits.map((h) => (
+                {displayHabits.map((h) => (
                   <div key={h._id} className="flex items-center gap-2">
                     <span className="inline-block h-2 w-2 rounded-full" style={{ backgroundColor: h.color }} />
                     <span className="whitespace-nowrap">{h.name}</span>
                     <HabitActionsMenu
                       habit={{ _id: h._id, name: h.name, color: h.color, goalPerMonth: h.goalPerMonth }}
+                      year={year}
+                      month={month}
                       onSaved={() => void fetchDashboard({ showSpinner: false })}
                       onDeleted={() => void fetchDashboard({ showSpinner: false })}
                     />
@@ -330,12 +362,12 @@ export default function DashboardPage() {
               </div>
             </div>
 
-            <HabitGrid habits={habits} year={year} month={month} onToggleHabit={toggleHabit} onMarkDone={markDone} />
+            <HabitGrid habits={displayHabits} year={year} month={month} onToggleHabit={toggleHabit} onMarkDone={markDone} />
           </div>
 
           <div className="space-y-6">
             <div ref={analyticsRef}>
-              <MonthlyGraph habits={habits} year={year} month={month} />
+              <MonthlyGraph habits={displayHabits} year={year} month={month} />
             </div>
 
             {showMotivation ? (
