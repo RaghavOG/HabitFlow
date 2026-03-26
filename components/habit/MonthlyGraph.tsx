@@ -23,6 +23,9 @@ function getDaysInMonth(year: number, month: number) {
 }
 
 export default function MonthlyGraph({ habits, year, month }: { habits: DashboardHabit[]; year: number; month: number }) {
+  const [mounted, setMounted] = React.useState(false)
+  React.useEffect(() => setMounted(true), [])
+
   const days = React.useMemo(() => Array.from({ length: getDaysInMonth(year, month) }, (_, i) => i + 1), [year, month])
 
   const data = React.useMemo(() => {
@@ -55,25 +58,27 @@ export default function MonthlyGraph({ habits, year, month }: { habits: Dashboar
       </CardHeader>
       <CardContent>
         <div className="w-full min-h-[320px] h-[320px]">
-          <ResponsiveContainer width="100%" height="100%" minWidth={200} minHeight={200}>
-            <LineChart data={data}>
-              <defs>
-                <linearGradient id="rateGradient" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="#22c55e" stopOpacity={0.35} />
-                  <stop offset="55%" stopColor="#3b82f6" stopOpacity={0.18} />
-                  <stop offset="100%" stopColor="#3b82f6" stopOpacity={0.02} />
-                </linearGradient>
-              </defs>
-              <CartesianGrid strokeDasharray="2 6" vertical={false} opacity={0.25} />
-              <XAxis dataKey="day" tick={{ fill: "#a1a1aa", fontSize: 12 }} />
-              <YAxis domain={[0, 100]} tickFormatter={(v) => `${Math.round(v)}%`} />
-              <Tooltip
-                formatter={(value: unknown) => `${Math.round(Number(value))}%`}
-              />
-              <Area type="monotone" dataKey="rate" stroke="none" fill="url(#rateGradient)" />
-              <Line type="monotone" dataKey="rate" stroke="#3b82f6" strokeWidth={2.5} dot={false} />
-            </LineChart>
-          </ResponsiveContainer>
+          {mounted ? (
+            <ResponsiveContainer width="100%" height="100%" minWidth={200} minHeight={200}>
+              <LineChart data={data}>
+                <defs>
+                  <linearGradient id="rateGradient" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="#22c55e" stopOpacity={0.35} />
+                    <stop offset="55%" stopColor="#3b82f6" stopOpacity={0.18} />
+                    <stop offset="100%" stopColor="#3b82f6" stopOpacity={0.02} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="2 6" vertical={false} opacity={0.25} />
+                <XAxis dataKey="day" tick={{ fill: "#a1a1aa", fontSize: 12 }} />
+                <YAxis domain={[0, 100]} tickFormatter={(v) => `${Math.round(v)}%`} />
+                <Tooltip formatter={(value: unknown) => `${Math.round(Number(value))}%`} />
+                <Area type="monotone" dataKey="rate" stroke="none" fill="url(#rateGradient)" />
+                <Line type="monotone" dataKey="rate" stroke="#3b82f6" strokeWidth={2.5} dot={false} />
+              </LineChart>
+            </ResponsiveContainer>
+          ) : (
+            <div className="h-full w-full animate-pulse rounded-xl bg-zinc-800/30" />
+          )}
         </div>
       </CardContent>
     </Card>
