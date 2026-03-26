@@ -112,9 +112,16 @@ export async function POST() {
     return NextResponse.json({ weekKey, bullets: existing.bullets })
   }
 
-  const habits = await (HabitModel as unknown as { getAllHabits: (userIdArg: mongoose.Types.ObjectId) => Promise<any[]> }).getAllHabits(
-    userObjectId
-  )
+  type HabitDoc = {
+    _id: mongoose.Types.ObjectId
+    name: string
+    color: string
+    goalPerMonth: number
+  }
+
+  const habits = await (HabitModel as unknown as {
+    getAllHabits: (userIdArg: mongoose.Types.ObjectId) => Promise<HabitDoc[]>
+  }).getAllHabits(userObjectId)
 
   const habitIds = habits.map((h) => new mongoose.Types.ObjectId(h._id))
   if (!habitIds.length) {
