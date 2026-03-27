@@ -8,6 +8,8 @@ import HeroSection from "@/components/home/HeroSection"
 import FeaturesSection from "@/components/home/FeaturesSection"
 import FooterSection from "@/components/home/FooterSection"
 
+const WINDOWS_EXE_URL = "https://github.com/RaghavOG/HabbitFlow/releases/download/v1.0.0/HabitFlow.Setup.1.0.0.exe"
+
 export default function Home() {
   return (
     <main className="relative overflow-hidden">
@@ -55,6 +57,12 @@ export default function Home() {
               <Link href="/dashboard">Go to Dashboard →</Link>
             </Button>
           </Show>
+
+          <Button asChild size="lg" variant="outline" className="rounded-xl">
+            <a href={WINDOWS_EXE_URL} target="_blank" rel="noopener noreferrer">
+              Download for Windows (.exe)
+            </a>
+          </Button>
         </div>
       </section>
 

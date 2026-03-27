@@ -49,7 +49,8 @@ See [`ARCHITECTURE.md`](./ARCHITECTURE.md).
 
 ## Windows (Desktop) Install
 If you’re using the Electron build:
-1. Download the latest `HabitFlow Setup <version>.exe` from GitHub Releases.
+1. Download the Windows installer:
+   - GitHub Releases (direct): `https://github.com/RaghavOG/HabbitFlow/releases/download/v1.0.0/HabitFlow.Setup.1.0.0.exe`
 2. Run the installer.
 3. If Windows SmartScreen shows a warning, click **More info → Run anyway** (expected for unsigned builds).
 4. Launch HabitFlow from the Start Menu.
